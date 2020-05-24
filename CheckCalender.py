@@ -11,10 +11,24 @@ def get_base_link():
 
 class Info:
 
-    def __init__(self):
-        self.country = {}
+    def __init__(self, year=2020, country='Germany', free_on=''):
+        self.country = country
         self.country_abb = ''
-        self.country_info = ''
+        self.year = year
+        self.public_holidays = []
+
+        if type(free_on) is list:
+            self.free_on = free_on
+        else:
+            raise Excepetion('No list given')
+
+        self.country_code = self.get_country_abbreviation(self.country)
+
+    def set_free_on(self, list):
+        self.free_on = list
+
+    def get_free_on(self):
+        return self.free_on
 
     def loads_specific_data(self, add_link: str):
         """
@@ -41,50 +55,40 @@ class Info:
         :param cntry_abb: Shortcut of the country
         :return: list of all info concerning the country
         """""
+
         response = requests.get(
             get_base_link() + 'CountryInfo?countryCode={country_abb}'.format(country_abb=cntry_abb))
-        self.country_info = json.loads(response.text)
+        country_info = json.loads(response.text)
         return self.country_info
 
-    def get_common_name(self):
-        for piece in self.country_info:
-            return piece
-
-
-class Calender:
-
-    def __init__(self, yr=datetime.year, country_code=''):
-        self.year = yr
-        self.country_code = country_code
-        self.dict = {}
-        self.public_holidays = []
-
-        if country_code == '':
-            raise Exception("No country selected")
-        # TODO: abhandeln ohne Programm zu beenden?
-
+    def get_public_holidays(self):
         response = requests.get('https://date.nager.at/api/v2/PublicHolidays/{Year}/{CountryCode}'.
                                 format(Year=self.year,
                                        CountryCode=self.country_code))
-        self.data = response.text
+        # print(self.year, self.country_code)
+        self.data = json.loads(response.text)
 
-    def get_public_holidays(self):
+        for name in self.data:
+            print(name['localName'])
+            self.public_holidays.append(name['localName'])
         return self.public_holidays
 
-    def get_dict(self):
-        self.dict = {
-            'CountryCode': self.country_code,
-            'commonName': info.get_common_name(),
-            'currentTime': '',
-            'publicHolidays': ''
-        }
-        return dict
+
+def compare(info_list, info2_list):
+    if type(info_list) is list and type(info2_list) is list:
+        if info_list == info2_list:
+            print('Congrats, you found your date ({info_list})'.format(info_list=info_list))
+        else:
+            for hd in info_list:
+                for hd2 in info2_list:
+                    if hd == hd2:
+                        print(hd)
 
 
-info = Info()
-user_country = input("Which Country?")
+info = Info(free_on=['Pfingsten', 'Karfreitag', 'Buß- und Bettag', 'Weihnachten'])
+info2 = Info(free_on=['Neujahr', 'Karfreitag', 'Weihnachten'])
+
+user_country = 'Germany'
 # pprint.pprint(info.get_country_info(info.get_country_abbreviation(user_country)))
-if user_country != '':
-    person1 = Calender(country_code=info.get_country_abbreviation(user_country))
-else:
-    person1 = Calender()
+
+compare(info.get_free_on(), info2.get_free_on())
